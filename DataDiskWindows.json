@@ -1,0 +1,501 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/VMWindows.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"location": {
+			"type": "string",
+			"defaultValue": "Central US"
+		},
+		"StorageAccountName": {
+			"type": "string",
+			"defaultValue": "storagedato"
+		}, 
+		"StorageAccountType": {
+			"type": "string",
+			"defaultValue": "Premium_LRS"
+		},
+		"StorageAccountTypeStandard": {
+			"type": "string",
+			"defaultValue": "Standard_LRS"
+		},
+		"adminUsername": {
+			"type": "string",
+			"defaultValue": "UserWindows"
+		},
+		"adminPassword": {
+			"type": "securestring", 
+			"defaultValue": "U$3rWind0w$"
+		},
+		"VMWindowsName": {
+			"type": "string",
+			"defaultValue": "VMWindowsD"
+		},
+		"VMSize": {
+			"type": "string",
+			"defaultValue": "Standard_DS3"
+		},
+		"ImagePublisher": {
+			"type": "string",
+			"defaultValue": "MicrosoftWindowsServer"
+		},
+		"ImageOffer": {
+			"type": "string",
+			"defaultValue": "WindowsServer"
+		},
+		"WindowsOSVersion": {
+			"type": "string",
+			"defaultValue": "2012-R2-Datacenter"
+		},
+		"OSDiskName": {
+			"type": "string",
+			"defaultValue": "osdiskndato"
+		},
+		"vmStorageContainerName": {
+			"type": "string",
+			"defaultValue": "vhdsws"
+		},
+		"nicNameVM": {
+			"type": "string",
+			"defaultValue": "NicWindowsD"
+		},
+		"AvailabilitySetName": {
+			"type": "string",
+			"defaultValue": "ASWindowsD"
+		},
+		"VirtualNetworkName": {
+			"type": "string",
+			"defaultValue": "VNetDWindows"
+		},
+		"VNetAddressPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.0.0/16"
+		},
+		"SubnetName": {
+			"type": "string",
+			"defaultValue": "SubnetWindowsD"
+		},
+		"SubnetPrefix": {
+			"type": "string",
+			"defaultValue": "192.168.1.0/24"
+		},
+		"NicIPAddress": {
+			"type": "string", 
+			"defaultValue": "192.168.1.5"
+		},
+		"NicIPAddress2": {
+			"type": "string", 
+			"defaultValue": "192.168.1.6"
+		},
+		"LoadBalancerWindows": {
+			"type": "string",
+			"defaultValue": "LBWindowsD"
+		},
+		"PublicIPAddressName": {
+			"type": "string", 
+			"defaultValue": "DWindowsIP"
+		},
+		"dnsNameForPublicIP": {
+			"type": "string",
+			"defaultValue": "dnsfordato"
+		},
+		"size": {
+			"type": "string",
+			"defaultValue": "1"
+		}, 
+		"size1": {
+			"type": "string",
+			"defaultValue": "300"
+		},
+		"size2": {
+			"type": "string",
+			"defaultValue": "600"
+		},
+		"dataType": {
+			"type": "string",
+			"defaultValue": "Premium"
+		}
+ 	},
+	"variables": {
+		"apiVersion": "2015-06-15",
+		"vnetID": "[resourceId('Microsoft.Network/virtualNetworks',parameters('VirtualNetworkName'))]",
+		"subnetRef": "[concat(variables('vnetID'),'/subnets/',parameters('SubnetName'))]",
+		"IBIDWindows": "[resourceId('Microsoft.Network/loadBalancers',parameters('LoadBalancerWindows'))]",
+		"lbPoolID": "[concat(variables('IBIDWindows'),'/backendAddressPools/BackendPool1')]",
+		"lbProbeID": "[concat(variables('IBIDWindows'),'/probes/tcpProbe')]",
+		"frontEndIPConfigID": "[concat(variables('IBIDWindows'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]",
+		"publicIPAddressType":"Dynamic",
+		"publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',parameters('PublicIPAddressName'))]",
+	}, 
+	"resources": [
+		{
+		  "apiVersion": "2015-05-01-preview",
+		  "type": "Microsoft.Network/publicIPAddresses",
+		  "name": "[parameters('PublicIPAddressName')]",
+		  "location": "[parameters('location')]",
+		  "properties": {
+			"publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+			"dnsSettings": {
+			  "domainNameLabel": "[parameters('dnsNameForPublicIP')]"
+			}
+		  }
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Storage/storageAccounts",
+			"name": "[parameters('StorageAccountName')]",
+			"location": "[parameters('location')]",
+			"properties": {
+				"accountType": "[parameters('StorageAccountType')]"
+			}
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Storage/storageAccounts",
+			"name": "[concat(parameters('StorageAccountName'),'1')]",
+			"location": "[parameters('location')]",
+			"properties": {
+				"accountType": "[parameters('StorageAccountTypeStandard')]"
+			}
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Compute/availabilitySets",
+			"name": "[parameters('AvailabilitySetName')]",
+			"location": "[parameters('location')]"
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Network/virtualNetworks",
+			"name": "[parameters('VirtualNetworkName')]",
+			"location": "[parameters('location')]",
+			"properties": {
+				"addressSpace": {
+					"addressPrefixes": [
+						"[parameters('VNetAddressPrefix')]"
+					]
+				},
+				"subnets": [
+					{
+							"name": "[parameters('SubnetName')]",
+							"properties": {
+								"addressPrefix": "[parameters('SubnetPrefix')]"
+							}
+					}
+				]
+			}
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Network/networkInterfaces",
+			"name": "[parameters('nicNameVM')]",
+			"location": "[parameters('location')]",
+			"dependsOn": [
+				"[concat('Microsoft.Network/virtualNetworks/',parameters('VirtualNetworkName'))]",
+				"[concat('Microsoft.Network/loadBalancers/',parameters('LoadBalancerWindows'))]",
+			],
+			"properties": {
+				"ipConfigurations":[
+					{
+						"name": "ipconfig",
+						"properties": {
+							"privateIPAllocationMethod": "Dynamic",
+							"subnet": {
+								"id": "[variables('subnetRef')]"
+							},
+							"loadBalancerBackendAddressPools": [
+								{
+									"id": "[concat(variables('IBIDWindows'), '/backendAddressPools/BackendPool1')]"
+								}
+							],
+							"loadBalancerInboundNatRules": [
+								{
+									"id": "[concat(variables('IBIDWindows'),'/inboundNatRules/RDP-VM0')]"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Network/networkInterfaces",
+			"name": "[concat(parameters('nicNameVM'),'1')]",
+			"location": "[parameters('location')]",
+			"dependsOn": [
+				"[concat('Microsoft.Network/virtualNetworks/',parameters('VirtualNetworkName'))]",
+				"[concat('Microsoft.Network/loadBalancers/',parameters('LoadBalancerWindows'))]"
+			],
+			"properties": {
+				"ipConfigurations":[
+					{
+						"name": "ipconfig",
+						"properties": {
+							"privateIPAllocationMethod": "Dynamic",
+							"subnet": {
+								"id": "[variables('subnetRef')]"
+							},
+							"loadBalancerBackendAddressPools": [
+								{
+									"id": "[concat(variables('IBIDWindows'), '/backendAddressPools/BackendPool1')]"
+								}
+							],
+							"loadBalancerInboundNatRules": [
+								{
+									"id": "[concat(variables('IBIDWindows'),'/inboundNatRules/RDP-VM1')]"
+								}
+							]
+						}
+					}
+				]
+			}
+		},
+		{
+		  "apiVersion": "2015-05-01-preview",
+		  "name": "[parameters('LoadBalancerWindows')]",
+		  "type": "Microsoft.Network/loadBalancers",
+		  "location": "[parameters('location')]",
+		  "dependsOn": [
+			"[concat('Microsoft.Network/publicIPAddresses/', parameters('publicIPAddressName'))]"
+		  ],
+		  "properties": {
+			"frontendIPConfigurations": [
+			  {
+				"name": "LoadBalancerFrontEnd",
+				"properties": {
+				  "publicIPAddress": {
+					"id": "[variables('publicIPAddressID')]"
+				  }
+				}
+			  }
+			],
+			"backendAddressPools": [
+			  {
+				"name": "BackendPool1"
+			  }
+			],
+			"inboundNatRules": [
+			  {
+				"name": "RDP-VM0",
+				"properties": {
+				  "frontendIPConfiguration": {
+					"id": "[variables('frontEndIPConfigID')]"
+				  },
+				  "protocol": "tcp",
+				  "frontendPort": 50001,
+				  "backendPort": 3389,
+				  "enableFloatingIP": false
+				}
+			  },
+			  {
+				"name": "RDP-VM1",
+				"properties": {
+				  "frontendIPConfiguration": {
+					"id": "[variables('frontEndIPConfigID')]"
+				  },
+				  "protocol": "tcp",
+				  "frontendPort": 50002,
+				  "backendPort": 3389,
+				  "enableFloatingIP": false
+				}
+			  }
+			],
+			"loadBalancingRules": [
+			  {
+				"name": "LBRule",
+				"properties": {
+				  "frontendIPConfiguration": {
+					"id": "[variables('frontEndIPConfigID')]"
+				  },
+				  "backendAddressPool": {
+					"id": "[variables('lbPoolID')]"
+				  },
+				  "protocol": "tcp",
+				  "frontendPort": 80,
+				  "backendPort": 80,
+				  "enableFloatingIP": false,
+				  "idleTimeoutInMinutes": 5,
+				  "probe": {
+					"id": "[variables('lbProbeID')]"
+				  }
+				}
+			  }
+			],
+			"probes": [
+			  {
+				"name": "tcpProbe",
+				"properties": {
+				  "protocol": "tcp",
+				  "port": 80,
+				  "intervalInSeconds": 5,
+				  "numberOfProbes": 2
+				}
+			  }
+			]
+		  }
+		},
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Compute/virtualMachines",
+			"name": "[concat(parameters('VMWindowsName'))]",
+			"location": "[parameters('location')]", 
+			"dependsOn": [
+			"[concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccountName'))]",
+            "[concat('Microsoft.Network/networkInterfaces/', parameters('nicNameVM'))]",
+			"[concat('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]",
+			],
+			"properties": {
+				"availabilitySet": {
+					"id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('AvailabilitySetName'))]"
+				},
+				"hardwareProfile": {
+					"vmSize": "[parameters('VMSize')]"
+				},
+				"osProfile": {
+					"computername": "[parameters('VMWindowsName')]",
+					"adminUsername": "[parameters('adminUsername')]",
+					"adminPassword": "[parameters('adminPassword')]"
+				},
+				"storageProfile": {
+					"imageReference": {
+						"publisher": "[parameters('ImagePublisher')]",
+						"offer": "[parameters('ImageOffer')]",
+						"sku": "[parameters('WindowsOSVersion')]",
+						"version": "latest"
+					},
+					"osDisk": {
+						"name": "osdisk",
+						"vhd": {
+							"uri": "[concat('http://',parameters('StorageAccountName'),'.blob.core.windows.net/',parameters('vmStorageContainerName'),'/',parameters('OSDiskName'),'.vhd')]"
+						},
+						"caching": "ReadWrite",
+						"createOption": "FromImage"
+					},
+					"dataDisks": [
+						{
+							"name": "datadisk1",
+							"diskSizeGB": "[parameters('size')]",
+							"lun": 0,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName')),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'dataDisk1.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						{
+							"name": "datadisk2",
+							"diskSizeGB": "[parameters('size1')]",
+							"lun": 1,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName')),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'dataDisk2.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						{
+							"name": "datadisk3",
+							"diskSizeGB": "[parameters('size2')]",
+							"lun": 2,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName'),'1'),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'dataDisk3.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						
+					]
+				},
+				"networkProfile": {
+					"networkInterfaces": [
+						{
+							"id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('nicNameVM'))]"
+						}
+					]
+				}
+			}
+		},
+		
+		{
+			"apiVersion": "2015-05-01-preview",
+			"type": "Microsoft.Compute/virtualMachines",
+			"name": "[concat(parameters('VMWindowsName'),'1')]",
+			"location": "[parameters('location')]", 
+			"dependsOn": [
+				"[concat('Microsoft.Storage/storageAccounts/', parameters('StorageAccountName'))]",
+				"[concat('Microsoft.Network/networkInterfaces/', parameters('nicNameVM'),'1')]",
+				"[concat('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]",
+				"[concat('Microsoft.Network/loadBalancers/', parameters('LoadBalancerWindows'))]",
+			],
+			"properties": {
+				"availabilitySet": {
+					"id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('AvailabilitySetName'))]"
+				},
+				"hardwareProfile": {
+					"vmSize": "[parameters('VMSize')]"
+				},
+				"osProfile": {
+					"computername": "[parameters('VMWindowsName')]",
+					"adminUsername": "[parameters('adminUsername')]",
+					"adminPassword": "[parameters('adminPassword')]"
+				},
+				"storageProfile": {
+					"imageReference": {
+						"publisher": "[parameters('ImagePublisher')]",
+						"offer": "[parameters('ImageOffer')]",
+						"sku": "[parameters('WindowsOSVersion')]",
+						"version": "latest"
+					},
+					"osDisk": {
+						"name": "osdisk",
+						"vhd": {
+							"uri": "[concat('http://',parameters('StorageAccountName'),'.blob.core.windows.net/',parameters('vmStorageContainerName'),'/',parameters('OSDiskName'),'1','.vhd')]"
+						},
+						"caching": "ReadWrite",
+						"createOption": "FromImage"
+					},
+					"dataDisks": [
+						{
+							"name": "datadisk1",
+							"diskSizeGB": "[parameters('size')]",
+							"lun": 0,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName')),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'1','dataDisk1.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						{
+							"name": "datadisk2",
+							"diskSizeGB": "[parameters('size1')]",
+							"lun": 1,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName')),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'1','dataDisk2.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						{
+							"name": "datadisk3",
+							"diskSizeGB": "[parameters('size2')]",
+							"lun": 2,
+							"vhd": {
+								"uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/',parameters('StorageAccountName'),'1'),variables('apiVersion')).primaryEndpoints.blob,parameters('vmStorageContainerName'),'/',parameters('VMWindowsName'),'1','dataDisk3.vhd')]"
+							},
+							"createOption": "Empty"
+						},
+						
+					]
+				},
+				"networkProfile": {
+					"networkInterfaces": [
+						{
+							"id": "[resourceId('Microsoft.Network/networkInterfaces',concat(parameters('nicNameVM'),'1'))]"
+						}
+					]
+				}
+			}
+		}
+		
+	]
+	
+}
